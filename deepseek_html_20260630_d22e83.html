@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DVENYA · Портфолио</title>
+    <!-- Three.js для 3D-просмотра -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111119;
+            --accent: #7c5cfc;
+            --accent-glow: #a78bfa;
+            --text: #e8e8f0;
+            --text-secondary: #9999aa;
+            --border-subtle: #1e1e2c;
+            --danger: #ff6b7b;
+            --radius: 18px;
+            --transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* звёздный фон */
+        .stars-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .main-wrapper {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(16px, 4vw, 40px);
+            text-align: center;
+            gap: clamp(12px, 2vh, 24px);
+        }
+
+        /* заголовок */
+        .brand {
+            font-size: clamp(28px, 5vw, 48px);
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            background: linear-gradient(135deg, #e0dfff, #b8a9ff, #7c5cfc, #c4b5ff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 4s ease-in-out infinite;
+            margin-bottom: 4px;
+        }
+
+        @keyframes shimmer {
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: clamp(13px, 2vw, 16px);
+            letter-spacing: 0.02em;
+            opacity: 0.8;
+        }
+
+        /* кнопки */
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 8px 0;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            border: none;
+            cursor: pointer;
+            font-size: clamp(14px, 2vw, 16px);
+            transition: all var(--transition);
+            background: var(--surface);
+            color: #fff;
+            border: 1px solid var(--border-subtle);
+            backdrop-filter: blur(8px);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: #1a1a2e;
+            border-color: var(--accent-glow);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(124, 92, 252, 0.25);
+        }
+
+        .btn.primary {
+            background: var(--accent);
+            border-color: transparent;
+            box-shadow: 0 4px 20px rgba(124, 92, 252, 0.4);
+        }
+
+        .btn.primary:hover {
+            background: #8f73ff;
+            box-shadow: 0 8px 28px rgba(124, 92, 252, 0.6);
+        }
+
+        .btn.danger {
+            background: transparent;
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .btn.danger:hover {
+            background: rgba(255, 107, 123, 0.12);
+        }
+
+        /* поле пароля */
+        .password-field {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: var(--surface);
+            border-radius: 50px;
+            padding: 4px 4px 4px 20px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .password-field input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            width: 160px;
+            letter-spacing: 0.1em;
+        }
+
+        .password-field input::placeholder {
+            color: #555;
+        }
+
+        /* галерея */
+        .gallery-container {
+            width: 100%;
+            max-width: 1200px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 10px 5px;
+            margin-top: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) var(--surface);
+        }
+
+        .gallery-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .gallery-container::-webkit-scrollbar-track {
+            background: var(--surface);
+            border-radius: 10px;
+        }
+        .gallery-container::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+
+        .work-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 12px;
+            width: 260px;
+            min-height: 200px;
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all var(--transition);
+            position: relative;
+        }
+
+        .work-card:hover {
+            border-color: var(--accent-glow);
+            box-shadow: 0 10px 25px rgba(124, 92, 252, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .work-preview {
+            width: 100%;
+            height: 180px;
+            background: #0a0a14;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .work-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        .work-preview .icon-placeholder {
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+
+        .work-preview canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        .work-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .work-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .admin-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 400px;
+            align-items: center;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 20px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            transition: all var(--transition);
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: rgba(124, 92, 252, 0.05);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+
+        @media (max-width: 580px) {
+            .work-card {
+                width: 100%;
+                max-width: 300px;
+            }
+            .btn-group {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas class="stars-canvas" id="starsCanvas"></canvas>
+
+    <div class="main-wrapper" id="appRoot">
+        <!-- динамически заполняется -->
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // ---------- хранилище ----------
+        const STORAGE_KEY = '3dvenya_portfolio';
+        const ADMIN_PASSWORD = '361533';
+
+        function loadWorks() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveWorks(works) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(works));
+        }
+
+        // ---------- звезды ----------
+        function initStars() {
+            const canvas = document.getElementById('starsCanvas');
+            const ctx = canvas.getContext('2d');
+            let stars = [];
+            let mouseX = 0,
+                mouseY = 0,
+                targetX = 0,
+                targetY = 0;
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                const count = Math.floor((canvas.width * canvas.height) / 3000);
+                stars = Array.from({ length: count }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 1.4 + 0.2,
+                    base: Math.random() * 0.4 + 0.2,
+                    speed: Math.random() * 0.012 + 0.004,
+                    offset: Math.random() * Math.PI * 2,
+                    depth: Math.random() * 0.5 + 0.1,
+                }));
+            }
+            window.addEventListener('resize', resize);
+            window.addEventListener('mousemove', e => {
+                targetX = (e.clientX - canvas.width / 2) * 0.2;
+                targetY = (e.clientY - canvas.height / 2) * 0.2;
+            });
+
+            function draw(ts) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                mouseX += (targetX - mouseX) * 0.04;
+                mouseY += (targetY - mouseY) * 0.04;
+                for (const s of stars) {
+                    const t = Math.sin(ts * s.speed + s.offset) * 0.35 + 0.65;
+                    const alpha = s.base * t;
+                    const px = s.x + mouseX * s.depth;
+                    const py = s.y + mouseY * s.depth;
+                    const sx = ((px % canvas.width) + canvas.width) % canvas.width;
+                    const sy = ((py % canvas.height) + canvas.height) % canvas.height;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(210,210,255,${alpha})`;
+                    ctx.fill();
+                }
+                requestAnimationFrame(draw);
+            }
+            resize();
+            requestAnimationFrame(draw);
+        }
+        initStars();
+
+        // ---------- 3D viewer для карточки ----------
+        function setupViewer(container, modelBase64) {
+            // очищаем предыдущий
+            while (container.firstChild) container.removeChild(container.firstChild);
+
+            const width = container.clientWidth || 260;
+            const height = container.clientHeight || 180;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a14);
+            const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.set(3, 2, 4);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(renderer.domElement);
+
+            // запрет контекстного меню
+            renderer.domElement.oncontextmenu = e => e.preventDefault();
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1.2;
+            controls.enableZoom = true;
+            controls.enablePan = false;
+
+            // свет
+            scene.add(new THREE.AmbientLight(0x404066));
+            const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+            dir.position.set(1, 3, 2);
+            scene.add(dir);
+
+            // загрузка модели из base64
+            const binary = Uint8Array.from(atob(modelBase64), c => c.charCodeAt(0));
+            const loader = new GLTFLoader();
+            loader.parse(binary.buffer, '', gltf => {
+                scene.add(gltf.scene);
+                // центрируем
+                const box = new THREE.Box3().setFromObject(gltf.scene);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3()).length();
+                camera.position.set(center.x + size * 0.8, center.y + size * 0.6, center.z + size * 1.2);
+                controls.target.copy(center);
+                controls.update();
+            }, err => {
+                console.warn('Ошибка загрузки модели', err);
+                const text = document.createElement('div');
+                text.style.color = '#ff6b7b';
+                text.innerText = '⚠️ Ошибка модели';
+                container.appendChild(text);
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // автообновление размера
+            const observer = new ResizeObserver(() => {
+                const w = container.clientWidth || width;
+                const h = container.clientHeight || height;
+                if (w !== renderer.domElement.width || h !== renderer.domElement.height) {
+                    renderer.setSize(w, h);
+                    camera.aspect = w / h;
+                    camera.updateProjectionMatrix();
+                }
+            });
+            observer.observe(container);
+        }
+
+        // ---------- UI рендеринг ----------
+        const root = document.getElementById('appRoot');
+        let currentView = 'role'; // 'role', 'guest', 'admin-login', 'admin-panel'
+
+        function clearRoot() {
+            root.innerHTML = '';
+        }
+
+        function renderRoleSelection() {
+            clearRoot();
+            currentView = 'role';
+            root.innerHTML = `
+                <h1 class="brand">3DVENYA</h1>
+                <p class="subtitle">Портфолио · выберите режим</p>
+                <div class="btn-group">
+                    <button class="btn primary" id="guestBtn">👤 Гость</button>
+                    <button class="btn" id="adminBtn">🔐 Администратор</button>
+                </div>
+            `;
+            document.getElementById('guestBtn').addEventListener('click', () => renderGuestGallery());
+            document.getElementById('adminBtn').addEventListener('click', renderAdminLogin);
+        }
+
+        function renderGuestGallery() {
+            clearRoot();
+            currentView = 'guest';
+            const works = loadWorks();
+            root.innerHTML = `
+                <button class="btn back-btn" id="backFromGuest">← Назад</button>
+                <h1 class="brand" style="font-size: clamp(24px,4vw,38px);">Работы</h1>
+                <p class="subtitle">${works.length ? 'Выберите для просмотра' : 'Пока ничего нет'}</p>
+                <div class="gallery-container" id="guestGallery"></div>
+            `;
+            document.getElementById('backFromGuest').addEventListener('click', renderRoleSelection);
+            const gallery = document.getElementById('guestGallery');
+            if (works.length === 0) {
+                gallery.innerHTML = '<p style="color: var(--text-secondary);">Администратор ещё не добавил работы.</p>';
+                return;
+            }
+            works.forEach((work, idx) => {
+                const card = document.createElement('div');
+                card.className = 'work-card';
+                card.innerHTML = `
+                    <div class="work-preview" id="preview-${idx}"></div>
+                    <div class="work-meta">
+                        <span>${work.name || 'Без названия'}</span>
+                        <span style="font-size:0.7rem; opacity:0.6;">${work.type === 'screenshot' ? 'Рендер' : work.type === 'file' ? 'Файл' : '3D'}</span>
+                    </div>
+                `;
+                gallery.appendChild(card);
+                const previewDiv = card.querySelector('.work-preview');
+                if (work.type === 'screenshot' && work.imageData) {
+                    const img = document.createElement('img');
+                    img.src = work.imageData;
+                    previewDiv.appendChild(img);
+                } else if (work.type === 'file') {
+                    previewDiv.innerHTML = '<div class="icon-placeholder">📦</div>';
+                } else if (work.type === 'viewer' && work.modelData) {
+                    // отложенная инициализация 3D вьювера
+                    setTimeout(() => setupViewer(previewDiv, work.modelData), 50);
+                } else {
+                    previewDiv.innerHTML = '<div class="icon-placeholder">❓</div>';
+                }
+            });
+        }
+
+        function renderAdminLogin() {
+            clearRoot();
+            currentView = 'admin-login';
+            root.innerHTML = `
+                <button class="btn back-btn" id="backFromLogin">← Назад</button>
+                <h1 class="brand">Администратор</h1>
+                <div class="password-field">
+                    <input type="password" id="passInput" placeholder="Пароль" autofocus>
+                    <button class="btn primary" id="loginSubmit">Войти</button>
+                </div>
+                <p id="loginError" style="color: var(--danger); font-size:0.9rem; min-height:20px;"></p>
+            `;
+            document.getElementById('backFromLogin').addEventListener('click', renderRoleSelection);
+            document.getElementById('loginSubmit').addEventListener('click', () => {
+                const pass = document.getElementById('passInput').value;
+                if (pass === ADMIN_PASSWORD) {
+                    renderAdminPanel();
+                } else {
+                    document.getElementById('loginError').textContent = 'Неверный пароль';
+                }
+            });
+            document.getElementById('passInput').addEventListener('keypress', e => {
+                if (e.key === 'Enter') document.getElementById('loginSubmit').click();
+            });
+        }
+
+        function renderAdminPanel() {
+            clearRoot();
+            currentView = 'admin-panel';
+            const works = loadWorks();
+            root.innerHTML = `
+                <button class="btn back-btn" id="backFromAdmin">← Выйти</button>
+                <h1 class="brand" style="font-size: clamp(24px,4vw,38px);">Управление</h1>
+                <div class="admin-panel">
+                    <div class="upload-zone" id="uploadTrigger">
+                        <span style="font-size:2rem; opacity:0.7;">⬆️</span>
+                        <p>Загрузить новую работу</p>
+                        <input type="file" id="fileInput" accept=".glb,.gltf,image/*" hidden>
+                    </div>
+                    <div id="uploadOptions" class="hidden" style="width:100%; display:flex; flex-direction:column; gap:12px;">
+                        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                            <button class="btn" id="typeScreenshot">Скриншот / рендер</button>
+                            <button class="btn" id="typeFile">Просто файл модели</button>
+                            <button class="btn primary" id="typeViewer">3D просмотр</button>
+                        </div>
+                        <p id="selectedFileInfo" style="font-size:0.8rem; color:var(--text-secondary);">Файл не выбран</p>
+                        <button class="btn primary" id="uploadConfirm" disabled>Загрузить</button>
+                    </div>
+                </div>
+                <div class="gallery-container" id="adminGallery"></div>
+            `;
+
+            const fileInput = document.getElementById('fileInput');
+            const uploadTrigger = document.getElementById('uploadTrigger');
+            const uploadOptions = document.getElementById('uploadOptions');
+            const selectedFileInfo = document.getElementById('selectedFileInfo');
+            const uploadConfirm = document.getElementById('uploadConfirm');
+            let selectedFile = null;
+            let selectedType = null;
+
+            uploadTrigger.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', e => {
+                if (e.target.files.length > 0) {
+                    selectedFile = e.target.files[0];
+                    selectedFileInfo.textContent = `Выбран: ${selectedFile.name} (${(selectedFile.size/1024).toFixed(1)} КБ)`;
+                    uploadOptions.classList.remove('hidden');
+                    uploadConfirm.disabled = false;
+                    // сброс типа
+                    selectedType = null;
+                    document.querySelectorAll('#uploadOptions .btn').forEach(b => b.style.outline = '');
+                }
+            });
+
+            document.getElementById('typeScreenshot').addEventListener('click', function() {
+                selectedType = 'screenshot';
+                highlightTypeButton(this);
+            });
+            document.getElementById('typeFile').addEventListener('click', function() {
+                selectedType = 'file';
+                highlightTypeButton(this);
+            });
+            document.getElementById('typeViewer').addEventListener('click', function() {
+                selectedType = 'viewer';
+                highlightTypeButton(this);
+            });
+
+            function highlightTypeButton(btn) {
+                document.querySelectorAll('#uploadOptions .btn').forEach(b => b.style.outline = '');
+                btn.style.outline = `2px solid var(--accent)`;
+                btn.style.outlineOffset = '2px';
+            }
+
+            uploadConfirm.addEventListener('click', async () => {
+                if (!selectedFile || !selectedType) {
+                    alert('Выберите файл и тип работы');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    const dataUrl = ev.target.result;
+                    const newWork = {
+                        id: Date.now(),
+                        type: selectedType,
+                        name: selectedFile.name.replace(/\.[^/.]+$/, ""),
+                        imageData: null,
+                        modelData: null,
+                    };
+                    if (selectedType === 'screenshot') {
+                        // ожидаем изображение
+                        if (!selectedFile.type.startsWith('image/')) {
+                            alert('Для скриншота загрузите изображение');
+                            return;
+                        }
+                        newWork.imageData = dataUrl;
+                    } else if (selectedType === 'file' || selectedType === 'viewer') {
+                        // ожидаем .glb
+                        if (!selectedFile.name.endsWith('.glb') && !selectedFile.name.endsWith('.gltf')) {
+                            alert('Загрузите файл .glb или .gltf');
+                            return;
+                        }
+                        const base64 = dataUrl.split(',')[1];
+                        newWork.modelData = base64;
+                        if (selectedType === 'viewer') {
+                            // дополнительно можно сохранить превью, но не обязательно
+                        }
+                    }
+                    const works = loadWorks();
+                    works.push(newWork);
+                    saveWorks(works);
+                    renderAdminPanel(); // обновить
+                };
+                if (selectedType === 'screenshot') {
+                    reader.readAsDataURL(selectedFile);
+                } else {
+                    reader.readAsDataURL(selectedFile); // тоже base64
+                }
+            });
+
+            document.getElementById('backFromAdmin').addEventListener('click', renderRoleSelection);
+
+            // отрисовка существующих работ с кнопками удаления
+            const adminGallery = document.getElementById('adminGallery');
+            if (works.length === 0) {
+                adminGallery.innerHTML = '<p style="color: var(--text-secondary); width:100%;">Нет работ</p>';
+            } else {
+                works.forEach((work, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'work-card';
+                    card.innerHTML = `
+                        <div class="work-preview" id="adminPreview-${idx}"></div>
+                        <div class="work-meta">
+                            <span>${work.name}</span>
+                            <span style="font-size:0.7rem;">${work.type}</span>
+                        </div>
+                        <button class="btn danger" data-id="${work.id}" style="margin-top:4px;">🗑️ Удалить</button>
+                    `;
+                    adminGallery.appendChild(card);
+                    const preview = card.querySelector('.work-preview');
+                    if (work.type === 'screenshot' && work.imageData) {
+                        const img = document.createElement('img');
+                        img.src = work.imageData;
+                        preview.appendChild(img);
+                    } else if (work.type === 'file') {
+                        preview.innerHTML = '<div class="icon-placeholder">📦</div>';
+                    } else if (work.type === 'viewer' && work.modelData) {
+                        setTimeout(() => setupViewer(preview, work.modelData), 50);
+                    }
+                });
+
+                document.querySelectorAll('.btn.danger').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = Number(e.target.dataset.id);
+                        const updated = loadWorks().filter(w => w.id !== id);
+                        saveWorks(updated);
+                        renderAdminPanel();
+                    });
+                });
+            }
+        }
+
+        // старт
+        renderRoleSelection();
+    </script>
+</body>
+</html>
